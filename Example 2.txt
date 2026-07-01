@@ -1,0 +1,40 @@
+// Example 2: A quotient realization curve for the dynamical system
+// F(x) = x^2 + t and H(x) = x^3 + t - 2.
+
+Q := Rationals();
+A2<t,x0> := AffineSpace(Q,2);
+
+F := func<u | u^2 + t>;
+H := func<u | u^3 + t - 2>;
+
+// Realization curve Y(G).
+Ypoly := H(F(H(F(x0)))) - x0;
+Y := Curve(A2, Ypoly);
+
+// Irreducible components of Y(G).
+C1poly := H(F(x0)) - x0;
+assert IsDivisibleBy(Ypoly, C1poly);
+Qpoly := Ypoly div C1poly;
+assert Ypoly eq C1poly*Qpoly;
+
+assert IsIrreducible(C1poly) and IsIrreducible(Qpoly);
+
+C1  := Curve(A2, C1poly);
+C15 := Curve(A2, Qpoly);
+
+// Genera of the components of Y(G).
+assert Genus(C1) eq 1;
+assert Genus(C15) eq 15;
+
+// Verify C1 is birational to elliptic curve of rank 1
+X1 := ProjectiveClosure(C1);
+pt := PointSearch(X1,10)[1];
+E := EllipticCurve(X1, pt);
+assert Rank(E) eq 1;
+Emin := MinimalModel(E);
+"Minimal model of elliptic curve:", Emin;
+"Cremona label:", CremonaReference(E);
+
+// A search for rational points on C15.
+assert PointSearch(C15, 10^6) eq [];
+

@@ -1,0 +1,22 @@
+// Example 1: a joint portrait for F(x) = x^2 + t and H(x) = x^2 + t - 1.
+
+Q := Rationals();
+A5<t,x,y,z1,z2> := AffineSpace(Q, 5);
+
+F := func<u | u^2 + t>;
+H := func<u | u^2 + t - 1>;
+
+// Realization scheme Y(G).
+YG := Scheme(A5,
+[y  - F(x),
+ x  - F(y),
+ z1 - H(y),
+ z2 - H(z1),
+ y  - H(z2)
+]);
+
+assert Dimension(YG) eq 0;
+
+// Rational realizations of the portrait.
+Points(YG);
+

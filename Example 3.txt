@@ -1,0 +1,119 @@
+
+// Example 3: 5-cycles in a Hénon family.
+
+
+// Build Y(5) in A^10_S and its model in A^6_Q.
+
+Q := Rationals();
+
+idx := function(i)
+    return ((i - 1) mod 5) + 1;
+end function;
+
+A11<T,a0,b0,a1,b1,a2,b2,a3,b3,a4,b4> := AffineSpace(Q, 11);
+
+a := [a0,a1,a2,a3,a4];
+b := [b0,b1,b2,b3,b4];
+
+Y_eqs := &cat[
+    [
+        b[idx(i)] - a[idx(i+1)],
+        b[idx(i+1)] - (a[idx(i)] + b[idx(i)]^2 + T)
+    ] : i in [1..5]
+];
+
+Y := Scheme(A11, Y_eqs); // The scheme Y(5) in A^11_Q.
+
+
+A6<t,x0,x1,x2,x3,x4> := AffineSpace(Q, 6);
+x := [x0,x1,x2,x3,x4];
+
+Y5_eqs := [
+    x[idx(i+2)] - x[idx(i)] - x[idx(i+1)]^2 - t
+    : i in [1..5]
+];
+
+Y5 := Scheme(A6, Y5_eqs); // The scheme Y(5) in A^6_Q.
+
+f := map<Y -> Y5 | [T,a0,a1,a2,a3,a4]>;
+assert IsInvertible(f);
+
+assert Dimension(Y5) eq 1;
+Y5 := Curve(Y5); // Henceforth Y(5) is a curve in A^6.
+
+
+// Build the automorphism rho and check it has order 5.
+
+rho := map<Y5 -> Y5 | [t, x1, x2, x3, x4, x0]>;
+assert IsInvertible(rho);
+assert Inverse(rho) eq rho^4;
+
+
+// Decompose Y(5) into irreducible components A and B.
+
+comps := IrreducibleComponents(Y5);
+assert #comps eq 2;
+
+// The diagonal component B is defined by x0 = x1 = ... = x4.
+Diag := Scheme(Y5,[x1 - x0, x2 - x0, x3 - x0, x4 - x0]);
+
+// Identify B among the irreducible components.
+B_candidates := [C : C in comps | C eq Diag];
+assert #B_candidates eq 1;
+B := B_candidates[1];
+
+// The other component is A.
+A := [C : C in comps | C ne B][1];
+
+assert Y5 eq A join B;
+
+
+// Check that rho restricts to automorphisms of A and B.
+
+// Restriction to A.
+rho_A := map<A -> A | [t, x1, x2, x3, x4, x0]>;
+assert IsInvertible(rho_A);
+assert Inverse(rho_A) eq rho_A^4;
+
+// Restriction to B.
+rho_B := map<B -> B | [t, x1, x2, x3, x4, x0]>;
+assert IsInvertible(rho_B);
+assert Inverse(rho_B) eq rho_B^4;
+
+
+// Build the map pi: A -> C and find all rational points on C.
+
+A2<s,u> := AffineSpace(Q,2);
+pi := map<A -> A2 | [t, x0 + x1 + x2 + x3 + x4]>;
+
+// Check that pi is rho-invariant.
+assert rho_A * pi eq pi;
+
+// Build the scheme-theoretic image of pi.
+C := Image(pi);
+assert IsIrreducible(C) and Dimension(C) eq 1;
+C := Curve(C);
+
+// C has genus 2. Compute a hyperelliptic model.
+assert Genus(C) eq 2;
+_, H, psi:= IsHyperelliptic(C);
+
+// The Jacobian of H has Mordell-Weil rank 0.
+J := Jacobian(H);
+assert RankBound(J) eq 0;
+
+// The curve H has exactly 3 rational points.
+assert #Chabauty0(J) eq 3;
+
+// The map psi: C -> H is defined at every rational point of C.
+assert #Points(BaseScheme(psi)) eq 0;
+
+// No rational point of H pulls back to a rational point of C.
+assert #Points(Pullback(psi, H![-2,0])) eq 0;
+assert #Points(Pullback(psi, H![1,0])) eq 0;
+assert #Points(Pullback(psi, H![1,0,0])) eq 0;
+
+// Conclusion: C has no rational point.
+
+// As a sanity check, we search for rational points of small height.
+assert #PointSearch(C,10^6) eq 0;
