@@ -1,108 +1,99 @@
 // Example 3: 5-cycles in a Hénon family.
 
-
-// Build Y(5) in A^10_S and its model in A^6_Q.
+// Build the leaf-cycle embedding of Y(5) in A^3_Q.
 
 Q := Rationals();
+A3<t,x,y> := AffineSpace(Q, 3);
+R := CoordinateRing(A3);
 
-idx := function(i)
-    return ((i - 1) mod 5) + 1;
+F := function(P)
+    X := P[1];
+    Y := P[2];
+    return [Y, X + Y^2 + t];
 end function;
 
-A11<T,a0,b0,a1,b1,a2,b2,a3,b3,a4,b4> := AffineSpace(Q, 11);
+P := [x,y];
+for i in [1..5] do
+    P := F(P);
+end for;
 
-a := [a0,a1,a2,a3,a4];
-b := [b0,b1,b2,b3,b4];
-
-Y_eqs := &cat[
-    [
-        b[idx(i)] - a[idx(i+1)],
-        b[idx(i+1)] - (a[idx(i)] + b[idx(i)]^2 + T)
-    ] : i in [1..5]
-];
-
-Y := Scheme(A11, Y_eqs); // The scheme Y(5) in A^11_Q.
-
-
-A6<t,x0,x1,x2,x3,x4> := AffineSpace(Q, 6);
-x := [x0,x1,x2,x3,x4];
-
-Y5_eqs := [
-    x[idx(i+2)] - x[idx(i)] - x[idx(i+1)]^2 - t
-    : i in [1..5]
-];
-
-Y5 := Scheme(A6, Y5_eqs); // The scheme Y(5) in A^6_Q.
-
-f := map<Y -> Y5 | [T,a0,a1,a2,a3,a4]>;
-assert IsInvertible(f);
-
+Y5 := Scheme(A3, [P[1]-x, P[2]-y]);
 assert Dimension(Y5) eq 1;
-Y5 := Curve(Y5); // Henceforth Y(5) is a curve in A^6.
 
-
-// Build the automorphism rho and check it has order 5.
-
-rho := map<Y5 -> Y5 | [t, x1, x2, x3, x4, x0]>;
+// Rotation/rho is just F on the fixed locus.
+rho := map<Y5 -> Y5 | [t, y, x + y^2 + t]>;
 assert IsInvertible(rho);
 assert Inverse(rho) eq rho^4;
-
 
 // Decompose Y(5) into irreducible components A and B.
 
 comps := IrreducibleComponents(Y5);
 assert #comps eq 2;
 
-// The diagonal component B is defined by x0 = x1 = ... = x4.
-Diag := Scheme(Y5,[x1 - x0, x2 - x0, x3 - x0, x4 - x0]);
+// The fixed-point component B is cut out by x = y.
+B := Scheme(Y5, [y - x]);
 
-// Identify B among the irreducible components.
-B_candidates := [C : C in comps | C eq Diag];
+//Identify the component equal to B
+B_candidates := [c : c in comps | c eq B];
 assert #B_candidates eq 1;
 B := B_candidates[1];
 
-// The other component is A.
-A := [C : C in comps | C ne B][1];
-
+// A is the other component.
+A := [c : c in comps | c ne B][1];
 assert Y5 eq A join B;
 
-
-// Check that rho restricts to automorphisms of A and B.
-
-// Restriction to A.
-rho_A := map<A -> A | [t, x1, x2, x3, x4, x0]>;
+// Restriction of rho to A.
+rho_A := map<A -> A | [t, y, x + y^2 + t]>;
 assert IsInvertible(rho_A);
 assert Inverse(rho_A) eq rho_A^4;
 
-// Restriction to B.
-rho_B := map<B -> B | [t, x1, x2, x3, x4, x0]>;
+// Restriction of rho to B.
+rho_B := map<B -> B | [t, y, x + y^2 + t]>;
 assert IsInvertible(rho_B);
 assert Inverse(rho_B) eq rho_B^4;
 
-
-// Build the map pi: A -> C and find all rational points on C.
+// Build the map pi: A -> C.
 
 A2<s,u> := AffineSpace(Q,2);
-pi := map<A -> A2 | [t, x0 + x1 + x2 + x3 + x4]>;
+
+P := [x,y];
+orbit := [P];
+for i in [1..4] do
+    P := F(P);
+    Append(~orbit, P);
+end for;
+
+pi := map<A -> A2 | [t, &+[P[1] : P in orbit]]>;
 
 // Check that pi is rho-invariant.
+
 assert rho_A * pi eq pi;
 
 // Build the scheme-theoretic image of pi.
+
 C := Image(pi);
+
 assert IsIrreducible(C) and Dimension(C) eq 1;
+
 C := Curve(C);
 
 // C has genus 2. Compute a hyperelliptic model.
+
 assert Genus(C) eq 2;
-_, H, psi:= IsHyperelliptic(C);
+
+_, H, psi := IsHyperelliptic(C);
 
 // The Jacobian of H has Mordell-Weil rank 0.
+
 J := Jacobian(H);
+
 assert RankBound(J) eq 0;
 
 // The curve H has exactly 3 rational points.
-assert #Chabauty0(J) eq 3;
+
+ptsH := Chabauty0(J);
+
+assert #ptsH eq 3;
 
 // The map psi: C -> H is defined at every rational point of C.
 assert #Points(BaseScheme(psi)) eq 0;
